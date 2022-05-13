@@ -12,9 +12,18 @@
 int puzzle[5][6] = {
     {1, 2, 3, 4, 5, 6},
     {7, 8, 9, 10, 11, 12},
-    {13, 14, 15, 16, 17, 18},
-    {19, 20, 21, 22, 23, 24},
-    {25, 26, 27, 28, 0, 29}};
+    {13, 14, 15, 16, 0, 18},
+    {19, 20, 21, 22, 17, 24},
+    {25, 26, 27, 28, 23, 29}};
+
+/*int puzzle[5][6] = {
+    {3, 7, 10, 0, 6, 16},
+    {1, 21, 13, 9, 17, 11},
+    {8, 19, 15, 5, 4, 22},
+    {2, 27, 20, 28, 24, 12},
+    {14, 25, 26, 29, 23, 18},
+};*/
+int best;
 struct Node
 {
     std::string state;
@@ -24,23 +33,26 @@ struct Node
     int y;
     int heuristic;
     int depth;
+    int hd;
+    int badCount;
 };
-class myLess
+class myGreater
 {
 public:
     bool operator()(Node a, Node b)
     {
-        return a.heuristic < b.heuristic;
+        return a.hd > b.hd;
     }
 };
 const std::string end = "ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]@";
 std::string makePuzzle(int puzzle[5][6]);
 void push_slide(
-    std::priority_queue<Node, std::vector<Node>, myLess> &q, const Node &n, int dir);
+    std::priority_queue<Node, std::vector<Node>, myGreater> &q, const Node &n, int dir);
 void Solver(int puzzle[5][6]);
 void Solver(std::string state);
 bool Solvable(const std::string &);
 std::string makeRandomPuzzle();
+void printPuzzle(std::string state);
 
 int main()
 {
@@ -54,8 +66,7 @@ int main()
     std::string puzzleStr = makePuzzle(puzzle);
     std::cout << puzzleStr << std::endl;
     Solver(puzzle);
-    while (true)
-        Solver(makeRandomPuzzle());
+    // Solver(makeRandomPuzzle());
 }
 
 // 5*6 int 배열을 문자열로 치환
@@ -74,11 +85,12 @@ std::string makePuzzle(int puzzle[5][6])
 
 // 퍼즐 슬라이드해서 우선순위 큐에 넣어줌
 void push_slide(
-    std::priority_queue<Node, std::vector<Node>, myLess> &q, const Node &n, int dir)
+    std::priority_queue<Node, std::vector<Node>, myGreater> &q, const Node &n, int dir)
 {
-    Node volunteer(n);
-    if (n.depth > 5)
+
+    if (n.badCount > 4)
         return;
+    Node volunteer(n);
     const int pos = volunteer.x + volunteer.y * 6;
     switch (dir)
     {
@@ -87,11 +99,17 @@ void push_slide(
             return;
         volunteer.state[pos] = volunteer.state[pos - 1];
         volunteer.state[pos - 1] = '@';
-        volunteer.x--;
-        if (volunteer.state[pos] - 65 <= pos)
+        if ((volunteer.state[pos] - 65) % 6 >= volunteer.x)
+        {
+            volunteer.badCount = 0;
             volunteer.heuristic--;
+        }
         else
+        {
+            volunteer.badCount++;
             volunteer.heuristic++;
+        }
+        volunteer.x--;
         volunteer.trail.push_back('L');
         break;
     case RIGHT:
@@ -99,11 +117,17 @@ void push_slide(
             return;
         volunteer.state[pos] = volunteer.state[pos + 1];
         volunteer.state[pos + 1] = '@';
-        volunteer.x++;
-        if (volunteer.state[pos] - 65 >= pos)
+        if ((volunteer.state[pos] - 65) % 6 <= volunteer.x)
+        {
+            volunteer.badCount = 0;
             volunteer.heuristic--;
+        }
         else
+        {
+            volunteer.badCount++;
             volunteer.heuristic++;
+        }
+        volunteer.x++;
         volunteer.trail.push_back('R');
         break;
     case UP:
@@ -111,11 +135,17 @@ void push_slide(
             return;
         volunteer.state[pos] = volunteer.state[pos - 6];
         volunteer.state[pos - 6] = '@';
-        volunteer.y--;
-        if (volunteer.state[pos] - 65 <= pos)
+        if ((volunteer.state[pos] - 65) / 6 >= volunteer.y)
+        {
+            volunteer.badCount = 0;
             volunteer.heuristic--;
+        }
         else
+        {
+            volunteer.badCount++;
             volunteer.heuristic++;
+        }
+        volunteer.y--;
         volunteer.trail.push_back('U');
         break;
     case DOWN:
@@ -123,20 +153,29 @@ void push_slide(
             return;
         volunteer.state[pos] = volunteer.state[pos + 6];
         volunteer.state[pos + 6] = '@';
-        volunteer.y++;
-        if (volunteer.state[pos] - 65 >= pos)
+        if ((volunteer.state[pos] - 65) / 6 <= volunteer.y)
+        {
+            volunteer.badCount = 0;
             volunteer.heuristic--;
+        }
         else
+        {
+            volunteer.badCount++;
             volunteer.heuristic++;
+        }
+        volunteer.y++;
         volunteer.trail.push_back('D');
         break;
     }
     if (volunteer.visited.find(volunteer.state) != volunteer.visited.end())
         return;
     volunteer.visited.insert({volunteer.state, true});
-    volunteer.heuristic += volunteer.depth;
+    volunteer.hd = volunteer.heuristic + volunteer.depth;
+    best = std::min(volunteer.heuristic, best);
     volunteer.depth += 1;
     q.push(volunteer);
+    std::cout << "heuristic: " << volunteer.heuristic << std::endl;
+    // printPuzzle(volunteer.state);
 }
 
 // 퍼즐 푸는 알고리즘
@@ -153,8 +192,10 @@ void Solver(std::string state)
         std::cout << "this puzzle is unsolvable." << std::endl;
         return;
     }
-    std::priority_queue<Node, std::vector<Node>, myLess> q;
+    std::priority_queue<Node, std::vector<Node>, myGreater> q;
     int pos;
+    // int half;
+    bool flag = true;
 
     Node start;
     start.state = state;
@@ -163,7 +204,8 @@ void Solver(std::string state)
     start.x = pos % 6;
     start.y = pos / 6;
     start.heuristic = 0;
-    start.depth = 0;
+    start.depth = 1;
+    start.badCount = 0;
     for (int i = 0; i < 30; i++)
     {
         if (i == pos)
@@ -172,21 +214,35 @@ void Solver(std::string state)
         if (tmp < 0)
             tmp = -tmp;
         start.heuristic += tmp % 6 + tmp / 6;
+        std::cout << i << ',' << tmp % 6 << tmp / 6 << std::endl;
     }
+    best = start.heuristic;
+    // half = start.heuristic * 0.9;
     q.push(start);
 
     while (true)
     {
+        if (q.empty())
+            return;
         Node n = q.top();
-        /* std::cout << q.size() << ':' << n.state << ',' << n.trail << ',' << n.depth << ", (" << n.x << ',' << n.y << ')' << std::endl
-        << std::endl;
+        /*std::cout << q.size() << ':' << n.state << ',' << n.trail << ',' << n.depth << ", (" << n.x << ',' << n.y << ')' << std::endl
+                  << ',' << n.heuristic << std::endl;
         ;*/
-        if (n.state == end)
+        std::cout << q.size() << ',' << n.depth << ',' << n.heuristic << std::endl;
+        if (n.heuristic == 0)
         {
             std::cout << "clear! \n trail: " << n.trail << std::endl;
             return;
         }
         q.pop();
+        /*std::cout << half << std::endl;
+        if (n.depth > 11 && n.heuristic < half)
+        {
+            q = std::priority_queue<Node, std::vector<Node>, myGreater>();
+            n.depth = 1;
+            q.push(n);
+            half *= 0.8;
+        }*/
         for (int i = 0; i < 4; i++)
             push_slide(q, n, i);
     }
@@ -212,6 +268,7 @@ bool Solvable(const std::string &puzzle)
     return inversion % 2 == 0;
 }
 
+// 랜덤 퍼즐 생성
 std::string makeRandomPuzzle()
 {
     std::string output = end;
@@ -219,4 +276,18 @@ std::string makeRandomPuzzle()
     std::default_random_engine rng(rd());
     shuffle(output.begin(), output.end(), rng);
     return output;
+}
+
+// 출력
+void printPuzzle(std::string state)
+{
+    for (int i = 0; i < 5; i++)
+    {
+        for (int j = 0; j < 6; j++)
+        {
+            std::cout << state[6 * i + j] - 64 << '\t';
+        }
+        std::cout << std::endl;
+    }
+    std::cout << std::endl;
 }
