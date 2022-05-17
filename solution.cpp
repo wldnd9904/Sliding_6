@@ -44,7 +44,7 @@ public:
 };
 const std::string end = "ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]@";
 std::string makePuzzle(int puzzle[5][6]);
-void push_slide(
+inline void push_slide(
     std::priority_queue<Node, std::vector<Node>, myGreater> &q, const Node &n, int dir);
 void Solver(int puzzle[5][6]);
 void Solver(std::string state);
@@ -57,7 +57,7 @@ int main()
 {
 
     std::chrono::system_clock::time_point startTime = std::chrono::system_clock::now();
-    Solver(makeRandomPuzzle(130));
+    Solver(makeRandomPuzzle(140));
     std::chrono::system_clock::time_point endTime = std::chrono::system_clock::now();
     std::chrono::milliseconds millisecond =
         std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
@@ -83,7 +83,7 @@ std::string makePuzzle(int puzzle[5][6])
 }
 
 // 퍼즐 슬라이드해서 우선순위 큐에 넣어줌
-void push_slide(
+inline void push_slide(
     std::priority_queue<Node, std::vector<Node>, myGreater> &q, const Node &n, int dir)
 {
     Node volunteer(n);
@@ -205,16 +205,17 @@ void Solver(std::string state)
     while (!q.empty())
     {
         Node n = q.top();
-        std::cout << q.size() << ',' << n.depth << ',' << n.heuristic << std::endl;
-        if (n.heuristic == 0)
+        // std::cout << q.size() << ',' << n.depth << ',' << n.heuristic << std::endl;
+        if (!n.heuristic)
         {
             std::cout << "clear! \n trail: " << n.trail << "\n movements: " << n.depth << "\n origin\'s heuristic: " << start.heuristic << std::endl;
-
             return;
         }
         q.pop();
-        for (int i = 0; i < 4; i++)
-            push_slide(q, n, i);
+        push_slide(q, n, LEFT);
+        push_slide(q, n, RIGHT);
+        push_slide(q, n, UP);
+        push_slide(q, n, DOWN);
     }
 }
 
@@ -238,7 +239,7 @@ bool Solvable(const std::string &puzzle)
                 inversion++;
         }
     }
-    return inversion % 2 == 0;
+    return !(inversion & 1);
 }
 
 // 랜덤 퍼즐 생성
