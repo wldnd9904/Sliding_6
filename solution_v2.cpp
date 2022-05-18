@@ -8,6 +8,7 @@
 #define RIGHT 1
 #define UP 2
 #define DOWN 3
+#define INF 99999
 
 /*int puzzle[5][6] = {
     {1, 2, 3, 4, 5, 6},
@@ -23,7 +24,7 @@ int puzzle[5][6] = {
     {2, 27, 20, 28, 24, 12},
     {14, 25, 26, 29, 23, 18},
 };
-int inv[30];
+int inv[30] = {0};
 struct Node
 {
     std::string state;
@@ -59,13 +60,13 @@ void printPuzzle(std::string state);
 
 int main()
 {
-
     std::chrono::system_clock::time_point startTime = std::chrono::system_clock::now();
-    Solver(makeRandomPuzzle(140));
+    Solver(makeRandomPuzzle(i));
     std::chrono::system_clock::time_point endTime = std::chrono::system_clock::now();
     std::chrono::milliseconds millisecond =
         std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
     std::cout << "Time Cost: " << millisecond.count() << " ms\n";
+
     // std::string puzzleStr = makePuzzle(puzzle);
     // std::cout << puzzleStr << std::endl;
     // Solver(puzzle);
@@ -268,7 +269,7 @@ void Solver(std::string state)
     }
     std::priority_queue<Node, std::vector<Node>, myGreater> qF, qB;
     std::map<std::string, Node> visited;
-    int pos;
+    int pos, FminH = INF, BminH = INF;
 
     // start, dest node
     Node start, dest;
@@ -301,15 +302,22 @@ void Solver(std::string state)
     // make inverse matrix
     for (int i = 0; i < 30; i++)
     {
-        inv[state[i]] = i;
+        inv[state[i] - 64] = i;
     }
     while (true)
     {
         // Forward
-        int qFSize = qF.size();
-        while (qFSize-- > 0)
+        int qFsize = qF.size();
+        while (qFsize-- > 0)
         {
             Node n = qF.top();
+            /*if (n.heuristic < FminH)
+            {
+                std::cout << FminH << std::endl;
+                FminH = n.heuristic;
+                break;
+            }*/
+            qF.pop();
             // std::cout << "qF: " << qF.size() << ',' << n.depth << ',' << n.heuristic << std::endl;
             if (n.heuristic == 0)
             {
@@ -321,6 +329,7 @@ void Solver(std::string state)
                 if (!visited[n.state].forward)
                 {
                     std::cout << "bidirectional clear! \n trail: " << n.trail << visited[n.state].trail << "\n movements: " << n.depth + visited[n.state].depth << "\n origin\'s heuristic: " << start.heuristic << std::endl;
+                    std::cout << qF.size() << ',' << qB.size() << std::endl;
                     return;
                 }
                 else
@@ -331,17 +340,23 @@ void Solver(std::string state)
             }
             else
                 visited.insert({n.state, n});
-            qF.pop();
             push_slide(qF, n, LEFT);
             push_slide(qF, n, RIGHT);
             push_slide(qF, n, UP);
             push_slide(qF, n, DOWN);
         }
         // Backward
-        int qBSize = qB.size();
-        while (qBSize-- > 0)
+        int qBsize = qB.size();
+        while (qBsize-- > 0)
         {
             Node n = qB.top();
+            /*if (n.heuristic < BminH)
+            {
+                std::cout << BminH << std::endl;
+                BminH = n.heuristic;
+                break;
+            }*/
+            qB.pop();
             // std::cout << "qB: " << qB.size() << ',' << n.depth << ',' << n.heuristic << std::endl;
             if (n.heuristic == 0)
             {
@@ -363,12 +378,13 @@ void Solver(std::string state)
             }
             else
                 visited.insert({n.state, n});
-            qB.pop();
             push_slide_backward(qB, n, LEFT);
             push_slide_backward(qB, n, RIGHT);
             push_slide_backward(qB, n, UP);
             push_slide_backward(qB, n, DOWN);
         }
+
+        // std::cout << qF.size() << ',' << qB.size() << std::endl;
     }
 }
 
