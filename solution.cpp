@@ -55,13 +55,15 @@ void printPuzzle(std::string state);
 
 int main()
 {
-    std::chrono::system_clock::time_point startTime = std::chrono::system_clock::now();
-    Solver(makeRandomPuzzle(i));
-    std::chrono::system_clock::time_point endTime = std::chrono::system_clock::now();
-    std::chrono::milliseconds millisecond =
-        std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
-    std::cout << "Time Cost: " << millisecond.count() << " ms\n";
-
+    for (int i = 2; i < 141; i += 2)
+    {
+        std::chrono::system_clock::time_point startTime = std::chrono::system_clock::now();
+        Solver(makeRandomPuzzle(i));
+        std::chrono::system_clock::time_point endTime = std::chrono::system_clock::now();
+        std::chrono::milliseconds millisecond =
+            std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+        std::cout << "Time Cost: " << millisecond.count() << " ms\n";
+    }
     // std::string puzzleStr = makePuzzle(puzzle);
     // std::cout << puzzleStr << std::endl;
     //  Solver(puzzle);

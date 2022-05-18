@@ -9,13 +9,7 @@
 #define UP 2
 #define DOWN 3
 
-/*int puzzle[5][6] = {
-    {1, 2, 3, 4, 5, 6},
-    {7, 8, 9, 10, 11, 12},
-    {13, 14, 15, 16, 0, 18},
-    {19, 20, 21, 22, 17, 24},
-    {25, 26, 27, 28, 23, 29}};
-*/
+// 퍼즐 2중 배열, 쉬운 연산을 위해 문자열로 바꿀 것
 int puzzle[5][6] = {
     {3, 7, 10, 0, 6, 16},
     {1, 21, 13, 9, 17, 11},
@@ -23,19 +17,25 @@ int puzzle[5][6] = {
     {2, 27, 20, 28, 24, 12},
     {14, 25, 26, 29, 23, 18},
 };
+
+// 역방향 에이스타에서 사용할 역방향 목적지 배열, inv[i]는 i가 시작상태에서 어디 있었는지를 나타냄
 int inv[30] = {0};
+
+// 에이스타용 노드 구조체
 struct Node
 {
-    std::string state;
-    std::string trail;
-    std::map<std::string, bool> visited;
-    int x;
-    int y;
-    int heuristic;
-    int depth;
-    int hd;
-    bool forward;
+    std::string state;                   // 현재 상태
+    std::string trail;                   // 지금까지의 경로
+    std::map<std::string, bool> visited; // 지금까지 들른 상태들의 맵, 해시함수로 동작함
+    int x;                               // 0의 위치
+    int y;                               // 0의 위치
+    int heuristic;                       // 휴리스틱
+    int depth;                           // 깊이 = 경로의 길이
+    int hd;                              // 휴리스틱 + 깊이
+    bool forward;                        // 정방향이라면 true, 역방향이라면 false
 };
+
+// 휴리스틱+깊이 비교함수, 우선순위 큐 내부 정렬하는 데 쓰임
 class myGreater
 {
 public:
@@ -89,12 +89,12 @@ inline void push_slide(
     const int pos = volunteer.x + volunteer.y * 6;
     switch (dir)
     {
-    case LEFT:
-        if (volunteer.x == 0)
+    case LEFT:                // 방향 선택
+        if (volunteer.x == 0) // 이동할 수 없는 방향이면 리턴
             return;
-        volunteer.state[pos] = volunteer.state[pos - 1];
+        volunteer.state[pos] = volunteer.state[pos - 1]; // 원소 교환
         volunteer.state[pos - 1] = '@';
-        if ((volunteer.state[pos] - 65) % 6 >= volunteer.x)
+        if ((volunteer.state[pos] - 65) % 6 >= volunteer.x) // 휴리스틱 더하거나 빼기
         {
             volunteer.heuristic--;
         }
@@ -103,7 +103,7 @@ inline void push_slide(
             volunteer.heuristic++;
         }
         volunteer.x--;
-        volunteer.trail.push_back('L');
+        volunteer.trail.push_back('L'); // 경로
         break;
     case RIGHT:
         if (volunteer.x == 5)
@@ -154,7 +154,7 @@ inline void push_slide(
         volunteer.trail.push_back('D');
         break;
     }
-    if (volunteer.visited.count(volunteer.state))
+    if (volunteer.visited.count(volunteer.state)) // 현재 경로에서 들렀던 지점이라면 리턴
         return;
     volunteer.visited.insert({volunteer.state, true});
     volunteer.hd = volunteer.heuristic + volunteer.depth;
@@ -175,7 +175,7 @@ inline void push_slide_backward(
             return;
         volunteer.state[pos] = volunteer.state[pos - 1];
         volunteer.state[pos - 1] = '@';
-        if (inv[volunteer.state[pos] - 64] % 6 >= volunteer.x)
+        if (inv[volunteer.state[pos] - 64] % 6 >= volunteer.x) // 역방향 함수로 휴리스틱 계산
         {
             volunteer.heuristic--;
         }
@@ -257,11 +257,11 @@ void Solver(std::string state)
         std::cout << "this puzzle is unsolvable." << std::endl;
         return;
     }
-    std::priority_queue<Node, std::vector<Node>, myGreater> qF, qB;
-    std::map<std::string, Node> visited;
+    std::priority_queue<Node, std::vector<Node>, myGreater> qF, qB; // 정방향용, 역방향용 우선순위 큐
+    std::map<std::string, Node> visited;                            // 들렀던 지점 저장
     int pos;
 
-    // start, dest node
+    // start, dest node 초기상태 설정
     Node start, dest;
     start.state = state;
     start.trail = "";
@@ -270,7 +270,7 @@ void Solver(std::string state)
     start.y = pos / 6;
     start.heuristic = 0;
     start.depth = 0;
-    for (int i = 0; i < 30; i++)
+    for (int i = 0; i < 30; i++) // 초기 휴리스틱 설정
     {
         if (i == pos)
             continue;
@@ -289,7 +289,7 @@ void Solver(std::string state)
     dest.depth = 0;
     dest.forward = false;
     qB.push(dest);
-    // make inverse matrix
+    // make inverse matrix 시작지점의 상태로 역방향 휴리스틱 계산용 기준 결정
     for (int i = 0; i < 30; i++)
     {
         inv[state[i] - 64] = i;
@@ -302,24 +302,24 @@ void Solver(std::string state)
         {
             Node n = qF.top();
             qF.pop();
-            if (n.heuristic == 0)
+            if (n.heuristic == 0) // 휴리스틱이 0이면 목적지 도착한 것
             {
                 std::cout << "clear! \n trail: " << n.trail << "\n movements: " << n.depth << "\n origin\'s heuristic: " << start.heuristic << std::endl;
                 return;
             }
-            if (visited.count(n.state))
+            if (visited.count(n.state)) // 들렀던 지점이라면
             {
-                if (!visited[n.state].forward)
+                if (!visited[n.state].forward) // 들렀던 지점인데 역방향이라면(만났다는뜻) 종료
                 {
                     std::cout << "bidirectional clear! \n trail: " << n.trail << visited[n.state].trail << "\n movements: " << n.depth + visited[n.state].depth << "\n origin\'s heuristic: " << start.heuristic << std::endl;
                     return;
                 }
-                else if (visited[n.state].depth < n.depth)
+                else if (visited[n.state].depth < n.depth) // 들렀던 지점인데 정방향이라면 나보다 적은 이동횟수로 왔는지 보고 교체
                     visited[n.state] = n;
             }
             else
                 visited.insert({n.state, n});
-            push_slide(qF, n, LEFT);
+            push_slide(qF, n, LEFT); // 4방향 탐색하고 큐에 푸시
             push_slide(qF, n, RIGHT);
             push_slide(qF, n, UP);
             push_slide(qF, n, DOWN);
