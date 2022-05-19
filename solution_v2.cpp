@@ -9,20 +9,20 @@
 #define UP 2
 #define DOWN 3
 
-/*int puzzle[5][6] = {
-    {1, 2, 3, 4, 5, 6},
-    {7, 8, 9, 10, 11, 12},
-    {13, 14, 15, 16, 0, 18},
-    {19, 20, 21, 22, 17, 24},
-    {25, 26, 27, 28, 23, 29}};
-*/
 int puzzle[5][6] = {
-    {3, 7, 10, 0, 6, 16},
-    {1, 21, 13, 9, 17, 11},
-    {8, 19, 15, 5, 4, 22},
-    {2, 27, 20, 28, 24, 12},
-    {14, 25, 26, 29, 23, 18},
-};
+    {1, 8, 2, 4, 5, 6},
+    {7, 14, 3, 9, 10, 12},
+    {13, 20, 15, 16, 11, 18},
+    {25, 19, 21, 22, 17, 24},
+    {26, 27, 28, 23, 29, 0}};
+/*
+int puzzle[5][6] = {
+    {13, 10, 8, 12, 5, 3},
+    {7, 2, 9, 16, 22, 0},
+    {1, 21, 26, 24, 18, 4},
+    {15, 14, 27, 19, 11, 6},
+    {25, 20, 28, 29, 17, 23},
+};*/
 int inv[30] = {0};
 struct Node
 {
@@ -60,7 +60,7 @@ void printPuzzle(std::string state);
 int main()
 {
     std::chrono::system_clock::time_point startTime = std::chrono::system_clock::now();
-    Solver(makeRandomPuzzle(140));
+    Solver(puzzle);
     std::chrono::system_clock::time_point endTime = std::chrono::system_clock::now();
     std::chrono::milliseconds millisecond =
         std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
@@ -184,7 +184,7 @@ inline void push_slide_backward(
             volunteer.heuristic++;
         }
         volunteer.x--;
-        volunteer.trail.insert(volunteer.trail.begin(), 'L');
+        volunteer.trail.insert(volunteer.trail.begin(), 'R');
         break;
     case RIGHT:
         if (volunteer.x == 5)
@@ -200,7 +200,7 @@ inline void push_slide_backward(
             volunteer.heuristic++;
         }
         volunteer.x++;
-        volunteer.trail.insert(volunteer.trail.begin(), 'R');
+        volunteer.trail.insert(volunteer.trail.begin(), 'L');
         break;
     case UP:
         if (volunteer.y == 0)
@@ -216,7 +216,7 @@ inline void push_slide_backward(
             volunteer.heuristic++;
         }
         volunteer.y--;
-        volunteer.trail.insert(volunteer.trail.begin(), 'U');
+        volunteer.trail.insert(volunteer.trail.begin(), 'D');
         break;
     case DOWN:
         if (volunteer.y == 4)
@@ -232,7 +232,7 @@ inline void push_slide_backward(
             volunteer.heuristic++;
         }
         volunteer.y++;
-        volunteer.trail.insert(volunteer.trail.begin(), 'D');
+        volunteer.trail.insert(volunteer.trail.begin(), 'U');
         break;
     }
     if (volunteer.visited.count(volunteer.state))
@@ -250,8 +250,6 @@ void Solver(int puzzle[5][6])
 }
 void Solver(std::string state)
 {
-    // printPuzzle(state);
-    // std::cout << state << std::endl;
     if (!Solvable(state))
     {
         std::cout << "this puzzle is unsolvable." << std::endl;
@@ -289,6 +287,7 @@ void Solver(std::string state)
     dest.depth = 0;
     dest.forward = false;
     qB.push(dest);
+
     // make inverse matrix
     for (int i = 0; i < 30; i++)
     {
